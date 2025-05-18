@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+ENV/
+.env/
+.venv/
+
+# Environment variables and credentials
+.env
+credentials.txt
+
+# Flask/SQLAlchemy
+instance/
+*.db
+*.sqlite3
+
+# Backup and export directories
+backups/
+database_exports/
+
+
+# System files
+.DS_Store
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+
+# Adminer
+static/adminer/adminer.php 
