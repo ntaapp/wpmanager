@@ -1,0 +1,208 @@
+{% extends "layout.html" %}
+
+{% block title %}My Profile - WordPress Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0">My Profile</h1>
+    </div>
+
+    <div class="row">
+        <!-- Profile Information -->
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">Profile Information</h6>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('auth.profile') }}" method="post">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" value="{{ user.username }}" disabled>
+                            <div class="form-text">Username cannot be changed</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Role</label>
+                            <input type="text" class="form-control" id="role" value="{{ user.role|capitalize }}" disabled>
+                        </div>
+                        
+                        <hr>
+                        
+                        <h5 class="mb-3">Change Password</h5>
+                        
+                        <div class="mb-3">
+                            <label for="current_password" class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="current_password" name="current_password">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="new_password" name="new_password">
+                                <button class="btn btn-outline-secondary" type="button" id="generate-password">
+                                    <i class="fas fa-dice"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password">
+                        </div>
+                        
+                        <div class="form-text mb-3">
+                            Leave password fields empty if you don't want to change your password.
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Account Stats -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">Account Statistics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div style="width: 100px; height: 100px; line-height: 100px; font-size: 40px; background-color: #4e73df; color: white; border-radius: 50%; margin: 0 auto;">
+                            {{ user.username[0]|upper }}
+                        </div>
+                        <h4 class="mt-3">{{ user.username }}</h4>
+                        <p class="text-muted">{{ user.role|capitalize }}</p>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><i class="fas fa-globe me-2"></i> Domains:</span>
+                            <span class="badge bg-primary">{{ user.domains.count() }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><i class="fas fa-save me-2"></i> Backups:</span>
+                            <span class="badge bg-info">{{ user.backups.count() }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><i class="fas fa-calendar me-2"></i> Joined:</span>
+                            <span>{{ user.created_at.strftime('%Y-%m-%d') }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><i class="fas fa-clock me-2"></i> Last Login:</span>
+                            <span>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">Security</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">
+                        <i class="fas fa-shield-alt me-2 text-primary"></i>
+                        Password: <span class="badge bg-success">Set</span>
+                    </p>
+                    
+                    <p class="mb-0">
+                        <i class="fas fa-key me-2 text-primary"></i>
+                        Two-Factor Authentication: <span class="badge bg-secondary">Not Available</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Generate random password
+    const generatePasswordBtn = document.getElementById('generate-password');
+    const newPasswordInput = document.getElementById('new_password');
+    const confirmPasswordInput = document.getElementById('confirm_password');
+    
+    if (generatePasswordBtn && newPasswordInput && confirmPasswordInput) {
+        generatePasswordBtn.addEventListener('click', function() {
+            const length = 12;
+            const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+            let password = "";
+            
+            for (let i = 0; i < length; i++) {
+                const randomIndex = Math.floor(Math.random() * charset.length);
+                password += charset[randomIndex];
+            }
+            
+            newPasswordInput.value = password;
+            confirmPasswordInput.value = password;
+            
+            // Show the password temporarily
+            newPasswordInput.type = 'text';
+            
+            setTimeout(() => {
+                newPasswordInput.type = 'password';
+            }, 5000);
+        });
+    }
+    
+    // Form validation
+    const profileForm = document.querySelector('form');
+    if (profileForm) {
+        profileForm.addEventListener('submit', function(e) {
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            const currentPassword = document.getElementById('current_password').value;
+            
+            // If trying to change password
+            if (newPassword || confirmPassword) {
+                // Check if current password is provided
+                if (!currentPassword) {
+                    e.preventDefault();
+                    showAlert('Current password is required to change password', 'danger');
+                    return;
+                }
+                
+                // Check if passwords match
+                if (newPassword !== confirmPassword) {
+                    e.preventDefault();
+                    showAlert('New passwords do not match', 'danger');
+                    return;
+                }
+                
+                // Check password strength
+                if (newPassword.length < 8) {
+                    e.preventDefault();
+                    showAlert('Password must be at least 8 characters long', 'danger');
+                    return;
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

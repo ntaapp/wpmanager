@@ -1,0 +1,372 @@
+{% extends "layout.html" %}
+
+{% block title %}Server Monitoring - WordPress Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0">Server Monitoring</h1>
+        <div>
+            <a href="{{ netdata_url }}" class="btn btn-primary me-2" target="_blank">
+                <i class="fas fa-chart-line fa-sm me-1"></i> Netdata Dashboard
+            </a>
+            <a href="{{ glances_url }}" class="btn btn-outline-primary" target="_blank">
+                <i class="fas fa-tachometer-alt fa-sm me-1"></i> Glances Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div id="monitoring-page">
+        <!-- System Overview -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Server Uptime</div>
+                                <div class="h5 mb-0 font-weight-bold" id="uptime">{{ stats.uptime_formatted }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clock fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Load Average</div>
+                                <div class="h5 mb-0 font-weight-bold" id="load-average">{{ stats.load_average|join(' | ') }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-weight fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    Web Server</div>
+                                <div class="h5 mb-0 font-weight-bold">
+                                    <span class="badge" id="web-server-status">Checking...</span>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-server fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    Database</div>
+                                <div class="h5 mb-0 font-weight-bold">
+                                    <span class="badge" id="database-status">Checking...</span>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-database fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resource Gauges -->
+        <div class="row mb-4">
+            <div class="col-lg-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold">CPU Usage</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="gauge-container mb-3">
+                            <div class="gauge" id="cpu-gauge">
+                                <div class="gauge-mask"></div>
+                                <div class="gauge-needle"></div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h4 id="cpu-usage-text">{{ stats.cpu_usage|default(0)|round(1) }}%</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold">Memory Usage</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="gauge-container mb-3">
+                            <div class="gauge" id="memory-gauge">
+                                <div class="gauge-mask"></div>
+                                <div class="gauge-needle"></div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h4 id="memory-usage-text">{{ stats.memory_usage|default(0)|round(1) }}%</h4>
+                            <div class="text-muted" id="memory-details">
+                                {{ stats.memory_used_formatted|default('0B') }} / {{ stats.memory_total_formatted|default('0B') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold">Disk Usage</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="gauge-container mb-3">
+                            <div class="gauge" id="disk-gauge">
+                                <div class="gauge-mask"></div>
+                                <div class="gauge-needle"></div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h4 id="disk-usage-text">{{ stats.disk_usage|default(0)|round(1) }}%</h4>
+                            <div class="text-muted" id="disk-details">
+                                {{ stats.disk_used_formatted|default('0B') }} / {{ stats.disk_total_formatted|default('0B') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CPU Usage Chart -->
+        <div class="row mb-4">
+            <div class="col-lg-12">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold">CPU Usage Over Time</h6>
+                    </div>
+                    <div class="card-body">
+                        <div style="height: 300px;">
+                            <canvas id="cpu-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Services Status -->
+        <div class="row mb-4">
+            <div class="col-lg-12">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold">Service Status</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Service</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><i class="fas fa-server me-2"></i> Web Server</td>
+                                        <td><span class="badge" id="web-server-status-table">Checking...</span></td>
+                                        <td>
+                                            {% if stats.web_server_name == 'apache2' %}
+                                            <form action="{{ url_for('monitoring.restart_service') }}" method="post">
+                                                <input type="hidden" name="service" value="apache2">
+                                                <button type="button" class="btn btn-sm btn-warning restart-service-btn" data-service="Apache">
+                                                    <i class="fas fa-redo me-1"></i> Restart
+                                                </button>
+                                            </form>
+                                            {% elif stats.web_server_name == 'lsws' %}
+                                            <form action="{{ url_for('monitoring.restart_service') }}" method="post">
+                                                <input type="hidden" name="service" value="lsws">
+                                                <button type="button" class="btn btn-sm btn-warning restart-service-btn" data-service="OpenLiteSpeed">
+                                                    <i class="fas fa-redo me-1"></i> Restart
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-database me-2"></i> Database (MariaDB)</td>
+                                        <td><span class="badge" id="database-status-table">Checking...</span></td>
+                                        <td>
+                                            <form action="{{ url_for('monitoring.restart_service') }}" method="post">
+                                                <input type="hidden" name="service" value="mariadb">
+                                                <button type="button" class="btn btn-sm btn-warning restart-service-btn" data-service="MariaDB">
+                                                    <i class="fas fa-redo me-1"></i> Restart
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-chart-line me-2"></i> Netdata</td>
+                                        <td><span class="badge" id="netdata-status">Checking...</span></td>
+                                        <td>
+                                            <form action="{{ url_for('monitoring.restart_service') }}" method="post">
+                                                <input type="hidden" name="service" value="netdata">
+                                                <button type="button" class="btn btn-sm btn-warning restart-service-btn" data-service="Netdata">
+                                                    <i class="fas fa-redo me-1"></i> Restart
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-tachometer-alt me-2"></i> Glances</td>
+                                        <td><span class="badge" id="glances-status">Checking...</span></td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-secondary" disabled>
+                                                <i class="fas fa-redo me-1"></i> Restart
+                                            </button>
+                                            <small class="text-muted ms-2">Manual restart required</small>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold">System Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Operating System</th>
+                                    <td>{{ stats.os_info|default('Linux') }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Kernel Version</th>
+                                    <td>{{ stats.kernel_version|default('Unknown') }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">CPU</th>
+                                    <td>{{ stats.cpu_info|default('Unknown') }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">CPU Cores</th>
+                                    <td>{{ stats.cpu_cores|default('Unknown') }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Total Memory</th>
+                                    <td>{{ stats.memory_total_formatted|default('Unknown') }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Hostname</th>
+                                    <td>{{ stats.hostname|default('Unknown') }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold">Disk Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Mount Point</th>
+                                    <th>Size</th>
+                                    <th>Used</th>
+                                    <th>Available</th>
+                                    <th>Usage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for disk in stats.disks|default([]) %}
+                                <tr>
+                                    <td>{{ disk.mount_point }}</td>
+                                    <td>{{ disk.size_formatted }}</td>
+                                    <td>{{ disk.used_formatted }}</td>
+                                    <td>{{ disk.avail_formatted }}</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar {% if disk.usage > 90 %}bg-danger{% elif disk.usage > 75 %}bg-warning{% else %}bg-success{% endif %}" 
+                                                 role="progressbar" 
+                                                 style="width: {{ disk.usage }}%"
+                                                 aria-valuenow="{{ disk.usage }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                {{ disk.usage }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No disk information available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js for charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<script src="{{ url_for('static', filename='js/monitoring.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize gauges with initial values
+    {% if stats %}
+    updateGauge(document.getElementById('cpu-gauge'), {{ stats.cpu_usage|default(0) }});
+    updateGauge(document.getElementById('memory-gauge'), {{ stats.memory_usage|default(0) }});
+    updateGauge(document.getElementById('disk-gauge'), {{ stats.disk_usage|default(0) }});
+    
+    // Initialize service status
+    updateServiceStatus('web-server-status', {{ 'true' if stats.web_server else 'false' }});
+    updateServiceStatus('web-server-status-table', {{ 'true' if stats.web_server else 'false' }});
+    updateServiceStatus('database-status', {{ 'true' if stats.database else 'false' }});
+    updateServiceStatus('database-status-table', {{ 'true' if stats.database else 'false' }});
+    updateServiceStatus('netdata-status', {{ 'true' if stats.netdata else 'false' }});
+    updateServiceStatus('glances-status', {{ 'true' if stats.glances else 'false' }});
+    {% endif %}
+});
+</script>
+{% endblock %}

@@ -1,0 +1,449 @@
+{% extends "layout.html" %}
+
+{% block title %}Database Management - WordPress Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0">Database Management</h1>
+        <div>
+            {% if current_user.role == 'admin' %}
+            <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#createDatabaseModal">
+                <i class="fas fa-plus fa-sm me-1"></i> Create Database
+            </button>
+            {% endif %}
+            <a href="{{ url_for('database.adminer') }}" class="btn btn-outline-primary" target="_blank">
+                <i class="fas fa-database me-1"></i> Open Adminer
+            </a>
+        </div>
+    </div>
+
+    <!-- Nav tabs -->
+    <ul class="nav nav-tabs mb-4" id="databaseTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="wordpress-tab" data-bs-toggle="tab" data-bs-target="#wordpress" type="button" role="tab" aria-controls="wordpress" aria-selected="true">
+                <i class="fab fa-wordpress me-1"></i> WordPress Databases
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="all-databases-tab" data-bs-toggle="tab" data-bs-target="#all-databases" type="button" role="tab" aria-controls="all-databases" aria-selected="false">
+                <i class="fas fa-database me-1"></i> All Databases
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="import-export-tab" data-bs-toggle="tab" data-bs-target="#import-export" type="button" role="tab" aria-controls="import-export" aria-selected="false">
+                <i class="fas fa-exchange-alt me-1"></i> Import/Export
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab content -->
+    <div class="tab-content" id="databaseTabsContent">
+        <!-- WordPress Databases Tab -->
+        <div class="tab-pane fade show active" id="wordpress" role="tabpanel" aria-labelledby="wordpress-tab">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">WordPress Site Databases</h6>
+                </div>
+                <div class="card-body">
+                    {% if sites %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Site Domain</th>
+                                        <th>Database Name</th>
+                                        <th>Database User</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for site in sites %}
+                                    <tr>
+                                        <td>
+                                            <a href="http://{{ site.domain.name }}" target="_blank" class="text-decoration-none">
+                                                {{ site.domain.name }}
+                                                <i class="fas fa-external-link-alt ms-1" style="font-size: 0.75rem;"></i>
+                                            </a>
+                                        </td>
+                                        <td>{{ site.db_name }}</td>
+                                        <td>{{ site.db_user }}</td>
+                                        <td>{{ site.installed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    Actions
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end">
+                                                    <li>
+                                                        <a class="dropdown-item" href="{{ url_for('database.adminer') }}?server=localhost&username={{ site.db_user }}&db={{ site.db_name }}" target="_blank">
+                                                            <i class="fas fa-external-link-alt me-2"></i>Open in Adminer
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <form action="{{ url_for('database.export_db') }}" method="post">
+                                                            <input type="hidden" name="db_name" value="{{ site.db_name }}">
+                                                            <button type="submit" class="dropdown-item">
+                                                                <i class="fas fa-download me-2"></i>Export Database
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                    <li>
+                                                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#importModal" 
+                                                                onclick="document.getElementById('import_db_name').value='{{ site.db_name }}'">
+                                                            <i class="fas fa-upload me-2"></i>Import SQL
+                                                        </button>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fab fa-wordpress fa-4x mb-3 text-secondary"></i>
+                            <h4>No WordPress Databases</h4>
+                            <p class="text-muted">Install WordPress sites to see their databases here</p>
+                            <a href="{{ url_for('wordpress.list_sites') }}" class="btn btn-primary mt-3">
+                                <i class="fab fa-wordpress me-1"></i> Manage WordPress Sites
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- All Databases Tab -->
+        <div class="tab-pane fade" id="all-databases" role="tabpanel" aria-labelledby="all-databases-tab">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold">All MySQL Databases</h6>
+                    {% if current_user.role == 'admin' %}
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createDatabaseModal">
+                        <i class="fas fa-plus fa-sm me-1"></i> Create Database
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="all-databases-table">
+                            <thead>
+                                <tr>
+                                    <th>Database Name</th>
+                                    <th>Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="3" class="text-center">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <span class="ms-2">Loading databases...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Import/Export Tab -->
+        <div class="tab-pane fade" id="import-export" role="tabpanel" aria-labelledby="import-export-tab">
+            <div class="row">
+                <!-- Export Panel -->
+                <div class="col-lg-6">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold">Export Database</h6>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('database.export_db') }}" method="post">
+                                <div class="mb-3">
+                                    <label for="export_db_name" class="form-label">Select Database</label>
+                                    <select class="form-select database-select" id="export_db_name" name="db_name" required>
+                                        <option value="" selected disabled>Select a database</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-download me-1"></i> Export Database
+                                    </button>
+                                </div>
+                                
+                                <div class="form-text mt-3">
+                                    This will create a full SQL dump of the selected database that you can download.
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Import Panel -->
+                <div class="col-lg-6">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold">Import SQL</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="importDbForm" action="{{ url_for('database.import_db') }}" method="post" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label for="import_db_name" class="form-label">Target Database</label>
+                                    <select class="form-select database-select" id="import_db_name" name="db_name" required>
+                                        <option value="" selected disabled>Select a database</option>
+                                    </select>
+                                    <div class="form-text text-warning">
+                                        Warning: Importing will overwrite existing data in the selected database.
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="sql_file" class="form-label">SQL File</label>
+                                    <input class="form-control" type="file" id="sql_file" name="sql_file" accept=".sql" required>
+                                </div>
+                                
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-upload me-1"></i> Import SQL
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Database Modal -->
+<div class="modal fade" id="createDatabaseModal" tabindex="-1" aria-labelledby="createDatabaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createDatabaseModalLabel">Create New Database</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createDatabaseForm" action="{{ url_for('database.create_db') }}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="db_name" class="form-label">Database Name</label>
+                        <input type="text" class="form-control" id="db_name" name="db_name" required>
+                        <div class="form-text">Use only letters, numbers, and underscores</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="db_user" class="form-label">Database User</label>
+                        <input type="text" class="form-control" id="db_user" name="db_user" required>
+                        <div class="form-text">Use only letters, numbers, and underscores</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="db_password" class="form-label">Database Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="db_password" name="db_password">
+                            <button class="btn btn-outline-secondary" type="button" id="generate-db-password">
+                                <i class="fas fa-dice"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Leave empty to generate random password</div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        The database and user will be created with full privileges.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Database</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Database Modal -->
+<div class="modal fade" id="deleteDatabaseModal" tabindex="-1" aria-labelledby="deleteDatabaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteDatabaseModalLabel">Delete Database</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('database.delete_db') }}" method="post">
+                <div class="modal-body">
+                    <input type="hidden" id="delete_db_name" name="db_name">
+                    <p>Are you sure you want to delete the database <strong id="delete_db_name_display"></strong>?</p>
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        This action cannot be undone! All data in this database will be permanently deleted.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete Database</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Import Database Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">Import SQL File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('database.import_db') }}" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" id="import_db_name" name="db_name">
+                    
+                    <div class="mb-3">
+                        <label for="sql_file_modal" class="form-label">Select SQL File</label>
+                        <input class="form-control" type="file" id="sql_file_modal" name="sql_file" accept=".sql" required>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Importing will overwrite existing data in the database. Make sure you have a backup before proceeding.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/database.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load all databases
+    async function loadAllDatabases() {
+        try {
+            const response = await fetch('/database/api/list');
+            const data = await response.json();
+            
+            if (data.error) {
+                console.error('Error loading databases:', data.error);
+                return;
+            }
+            
+            const tableBody = document.querySelector('#all-databases-table tbody');
+            tableBody.innerHTML = '';
+            
+            if (data.databases.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="text-center">No databases found</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            data.databases.forEach(dbName => {
+                const isWordPress = data.wordpress_dbs.includes(dbName);
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${dbName}</td>
+                    <td>
+                        ${isWordPress ? 
+                            '<span class="badge bg-primary"><i class="fab fa-wordpress me-1"></i> WordPress</span>' : 
+                            '<span class="badge bg-secondary"><i class="fas fa-database me-1"></i> Custom</span>'}
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                Actions
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="${"{{ url_for('database.adminer') }}"}?server=localhost&db=${dbName}" target="_blank">
+                                        <i class="fas fa-external-link-alt me-2"></i>Open in Adminer
+                                    </a>
+                                </li>
+                                <li>
+                                    <form action="${"{{ url_for('database.export_db') }}"}" method="post">
+                                        <input type="hidden" name="db_name" value="${dbName}">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-download me-2"></i>Export Database
+                                        </button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#importModal" 
+                                            onclick="document.getElementById('import_db_name').value='${dbName}'">
+                                        <i class="fas fa-upload me-2"></i>Import SQL
+                                    </button>
+                                </li>
+                                ${(!isWordPress && "{{ current_user.role }}" === 'admin') ? `
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button type="button" class="dropdown-item text-danger delete-db-btn" data-db-name="${dbName}">
+                                        <i class="fas fa-trash-alt me-2"></i>Delete
+                                    </button>
+                                </li>
+                                ` : ''}
+                            </ul>
+                        </div>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Attach event listeners to delete buttons
+            document.querySelectorAll('.delete-db-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const dbName = this.getAttribute('data-db-name');
+                    document.getElementById('delete_db_name').value = dbName;
+                    document.getElementById('delete_db_name_display').textContent = dbName;
+                    new bootstrap.Modal(document.getElementById('deleteDatabaseModal')).show();
+                });
+            });
+            
+        } catch (error) {
+            console.error('Error loading databases:', error);
+        }
+    }
+    
+    // Load databases when the all-databases tab is shown
+    const allDatabasesTab = document.getElementById('all-databases-tab');
+    if (allDatabasesTab) {
+        allDatabasesTab.addEventListener('shown.bs.tab', loadAllDatabases);
+        
+        // If this tab is active on page load
+        if (allDatabasesTab.classList.contains('active')) {
+            loadAllDatabases();
+        }
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dropdown-menu {
+        z-index: 2000 !important;
+        position: absolute !important;
+    }
+    .table-responsive, .card-body {
+        overflow: visible !important;
+    }
+</style>
+{% endblock %}

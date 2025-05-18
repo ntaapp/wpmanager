@@ -1,0 +1,220 @@
+{% extends "layout.html" %}
+
+{% block title %}Domains - WordPress Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0">Domain Management</h1>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDomainModal">
+            <i class="fas fa-plus fa-sm me-1"></i> Add New Domain
+        </button>
+    </div>
+
+    <!-- Domains Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Your Domains</h6>
+        </div>
+        <div class="card-body">
+            {% if domains %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Domain Name</th>
+                                <th>Type</th>
+                                <th>Created</th>
+                                <th>WordPress</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for domain in domains %}
+                            <tr>
+                                <td>
+                                    <a href="http://{{ domain.name }}" target="_blank" class="text-decoration-none">
+                                        {{ domain.name }}
+                                        <i class="fas fa-external-link-alt ms-1" style="font-size: 0.75rem;"></i>
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if domain.is_subdomain %}
+                                    <span class="badge bg-info">Subdomain</span>
+                                    <small class="text-muted ms-1">of {{ domain.parent_domain }}</small>
+                                    {% else %}
+                                    <span class="badge bg-primary">Domain</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ domain.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if domain.wordpress_site %}
+                                    <span class="badge bg-success">Installed</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Not Installed</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                            Actions
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            {% if not domain.wordpress_site %}
+                                            <li>
+                                                <a class="dropdown-item" href="{{ url_for('wordpress.list_sites') }}">
+                                                    <i class="fab fa-wordpress me-2"></i>Install WordPress
+                                                </a>
+                                            </li>
+                                            {% endif %}
+                                            <li>
+                                                <a class="dropdown-item" href="{{ url_for('files.browse', domain_id=domain.id) }}">
+                                                    <i class="fas fa-folder-open me-2"></i>Browse Files
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ url_for('backups.list_backups') }}">
+                                                    <i class="fas fa-save me-2"></i>Backup
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editDomainModal{{ domain.id }}">
+                                                    <i class="fas fa-edit me-2"></i>Edit
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <form action="{{ url_for('domains.delete_domain', domain_id=domain.id) }}" method="post">
+                                                    {% if domain.wordpress_site %}
+                                                        <button type="button" class="dropdown-item text-danger" disabled data-bs-toggle="tooltip" data-bs-placement="left" title="Delete the WordPress site first.">
+                                                            <i class="fas fa-trash-alt me-2"></i>Delete
+                                                        </button>
+                                                    {% else %}
+                                                        <button type="button" class="dropdown-item text-danger delete-domain-btn" data-domain-name="{{ domain.name }}">
+                                                            <i class="fas fa-trash-alt me-2"></i>Delete
+                                                        </button>
+                                                    {% endif %}
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-globe fa-4x mb-3 text-secondary"></i>
+                    <h4>No Domains Added Yet</h4>
+                    <p class="text-muted">Add your first domain to get started</p>
+                    <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addDomainModal">
+                        <i class="fas fa-plus me-1"></i> Add Domain
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Domain Modal -->
+<div class="modal fade" id="addDomainModal" tabindex="-1" aria-labelledby="addDomainModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addDomainModalLabel">Add New Domain</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addDomainForm" action="{{ url_for('domains.add_domain') }}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="domain_name" class="form-label">Domain Name</label>
+                        <input type="text" class="form-control" id="domain_name" name="domain_name" required>
+                        <div id="domain-availability"></div>
+                        <div class="form-text">Enter domain without http:// or https://</div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_subdomain" name="is_subdomain">
+                        <label class="form-check-label" for="is_subdomain">This is a subdomain</label>
+                    </div>
+                    
+                    <div class="mb-3 d-none" id="parent_domain_group">
+                        <label for="parent_domain" class="form-label">Parent Domain</label>
+                        <select class="form-select" id="parent_domain" name="parent_domain">
+                            <option value="" selected disabled>Select parent domain</option>
+                            {% for domain in domains if not domain.is_subdomain %}
+                            <option value="{{ domain.name }}">{{ domain.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Domain</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Domain Modals -->
+{% for domain in domains %}
+<div class="modal fade" id="editDomainModal{{ domain.id }}" tabindex="-1" aria-labelledby="editDomainModalLabel{{ domain.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editDomainModalLabel{{ domain.id }}">Edit Domain</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('domains.edit_domain', domain_id=domain.id) }}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="domain_name{{ domain.id }}" class="form-label">Domain Name</label>
+                        <input type="text" class="form-control" id="domain_name{{ domain.id }}" name="domain_name" value="{{ domain.name }}" required>
+                        <div class="form-text">Warning: Changing domain name will rename all associated files</div>
+                    </div>
+                    
+                    {% if domain.is_subdomain %}
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <input type="text" class="form-control" value="Subdomain of {{ domain.parent_domain }}" disabled>
+                        <div class="form-text">Subdomain type cannot be changed</div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dropdown-menu {
+        z-index: 2000 !important;
+        position: absolute !important;
+    }
+    .table-responsive, .card-body {
+        overflow: visible !important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/domains.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

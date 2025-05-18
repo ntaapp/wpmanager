@@ -1,0 +1,262 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - WordPress Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0">Dashboard</h1>
+        <a href="{{ url_for('wordpress.list_sites') }}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50 me-1"></i> Add New Site
+        </a>
+    </div>
+
+    <!-- Stats Cards Row -->
+    <div class="row">
+        <!-- Total Sites Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total WordPress Sites</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ wp_sites|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fab fa-wordpress fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Domains Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Total Domains</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ domains|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-globe fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backups Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Backups</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ backups|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-save fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Server Status Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Server Status</div>
+                            <div class="h5 mb-0 font-weight-bold">
+                                <span class="badge {% if server_status == 'Online' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ server_status }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-server fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Row -->
+    <div class="row">
+        <!-- Recent WordPress Sites -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold">Recent WordPress Sites</h6>
+                    <a href="{{ url_for('wordpress.list_sites') }}" class="btn btn-sm btn-primary">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_sites %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Domain</th>
+                                        <th>Status</th>
+                                        <th>Installed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for site in recent_sites %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ site.wp_url }}" target="_blank">
+                                                {{ site.domain.name }}
+                                                <i class="fas fa-external-link-alt ms-1" style="font-size: 0.75rem;"></i>
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if site.status == 'active' else 'warning' if site.status == 'installing' else 'danger' }}">
+                                                {{ site.status|capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>{{ site.installed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fab fa-wordpress fa-3x mb-3 text-gray-300"></i>
+                            <p>No WordPress sites created yet.</p>
+                            <a href="{{ url_for('wordpress.list_sites') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> Create WordPress Site
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Backups -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold">Recent Backups</h6>
+                    <a href="{{ url_for('backups.list_backups') }}" class="btn btn-sm btn-primary">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_backups %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Domain</th>
+                                        <th>Type</th>
+                                        <th>Created</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for backup in recent_backups %}
+                                    <tr>
+                                        <td>{{ backup.domain.name }}</td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                {{ backup.backup_type|capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>{{ backup.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-save fa-3x mb-3 text-gray-300"></i>
+                            <p>No backups created yet.</p>
+                            <a href="{{ url_for('backups.list_backups') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> Create Backup
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Resources -->
+    <div class="row">
+        <div class="col-xl-12 col-lg-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold">System Resources</h6>
+                    {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('monitoring.system_monitor') }}" class="btn btn-sm btn-primary">
+                        Detailed Monitoring
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-4">
+                            <div class="card bg-primary text-white shadow">
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <i class="fas fa-microchip fa-3x mb-3"></i>
+                                        <h5>CPU Usage</h5>
+                                        <h2>{{ system_stats.cpu_usage|default('0') }}%</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-4">
+                            <div class="card bg-success text-white shadow">
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <i class="fas fa-memory fa-3x mb-3"></i>
+                                        <h5>Memory Usage</h5>
+                                        <h2>{{ system_stats.memory_usage|default('0') }}%</h2>
+                                        <p>{{ system_stats.memory_used_formatted|default('0 MB') }} / {{ system_stats.memory_total_formatted|default('0 GB') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-4">
+                            <div class="card bg-info text-white shadow">
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <i class="fas fa-hdd fa-3x mb-3"></i>
+                                        <h5>Disk Usage</h5>
+                                        <h2>{{ system_stats.disk_usage|default('0') }}%</h2>
+                                        <p>{{ system_stats.disk_used_formatted|default('0 GB') }} / {{ system_stats.disk_total_formatted|default('0 GB') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // You could add AJAX calls here to periodically update system stats
+});
+</script>
+{% endblock %}
